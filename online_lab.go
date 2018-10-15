@@ -1,8 +1,7 @@
 package onlinelab
 
-import "context"
-
 // Config is the configuration for each online test
+// The sum of all treatments' the volume proportions should be 100
 type Config struct {
 	Name       string
 	treatments []Treatment
@@ -10,18 +9,12 @@ type Config struct {
 
 // Treatment is used to define the volume proportions of the test
 type Treatment struct {
-	Name             string
-	volumeProportion float32
+	Name string
+	// volumeProportion is the proportion of incoming volume to the treatment
+	volumeProportion int
 }
 
 // ConfigStorage is to get the persisted OnlineLabConfig
 type ConfigStorage interface {
 	GetConfig() (Config, error)
-}
-
-// TreatmentController is to assign the requests to the right treatment
-// by the settings
-type TreatmentController interface {
-	GetNextTreatment(requestID int) string
-	Delete(context context.Context)
 }
