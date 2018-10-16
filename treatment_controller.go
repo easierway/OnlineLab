@@ -67,7 +67,7 @@ func CreateTreatmentController(context context.Context, configStorage ConfigStor
 func (tc *TreatmentController) calculateSlotRange() {
 	offset := 0
 	var treatmentRanges []treatmentRange
-	for _, treatment := range tc.config.Treatments {
+	for _, treatment := range tc.config.treatments {
 		treatmentRanges = append(treatmentRanges, tc.createTreatmentRange(treatment.Name,
 			offset, offset+treatment.VolumeProportion-1))
 		offset = offset + treatment.VolumeProportion
