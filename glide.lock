@@ -1,0 +1,36 @@
+hash: 6d029d85f43690dda9b8762b4213077cfdf4875ac34e7c4c1ddb61ca1a784c76
+updated: 2018-10-16T16:33:36.955786+08:00
+imports:
+- name: github.com/armon/go-metrics
+  version: f0300d1749da6fa982027e449ec0c7a145510c3c
+- name: github.com/hashicorp/consul
+  version: e8757838a49feeb682c7e6ad6b78694a78b2096b
+  subpackages:
+  - api
+- name: github.com/hashicorp/go-cleanhttp
+  version: e8ab9daed8d1ddd2d3c4efba338fe2eeae2e4f18
+- name: github.com/hashicorp/go-immutable-radix
+  version: 27df80928bb34bb1b0d6d0e01b9e679902e7a6b5
+- name: github.com/hashicorp/go-rootcerts
+  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
+- name: github.com/hashicorp/golang-lru
+  version: 20f1fb78b0740ba8c3cb143a61e86ba5c8669768
+  subpackages:
+  - simplelru
+- name: github.com/hashicorp/serf
+  version: 48d57945817366b5484d99353f1f33e990bd142d
+  subpackages:
+  - coordinate
+- name: github.com/json-iterator/go
+  version: 1624edc4454b8682399def8740d46db5e4362ba4
+- name: github.com/mitchellh/go-homedir
+  version: ae18d6b8b3205b561c79e8e5f69bff09736185f4
+- name: github.com/mitchellh/mapstructure
+  version: f15292f7a699fcc1a38a80977f80a046874ba8ac
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd
+- name: gopkg.in/yaml.v2
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+testImports: []

@@ -4,14 +4,14 @@ package onlinelab
 // The sum of all treatments' the volume proportions should be 100
 type Config struct {
 	Name       string
-	treatments []Treatment
+	Treatments []Treatment
 }
 
 // Treatment is used to define the volume proportions of the test
 type Treatment struct {
 	Name string
 	// volumeProportion is the proportion of incoming volume to the treatment
-	volumeProportion int
+	VolumeProportion int
 }
 
 // ConfigStorage is to get the persisted OnlineLabConfig
