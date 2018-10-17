@@ -5,6 +5,7 @@ import (
 	"github.com/json-iterator/go"
 )
 
+// NewConsulConfigStorage is ConsulConfigStorage constructor
 func NewConsulConfigStorage(consulAddress string) (*ConsulConfigStorage, error) {
 	//var err error
 	client, err := api.NewClient(&api.Config{Address: consulAddress})
@@ -15,12 +16,14 @@ func NewConsulConfigStorage(consulAddress string) (*ConsulConfigStorage, error) 
 	return &ConsulConfigStorage{kv: client.KV(), json: json}, nil
 }
 
+// ConsulConfigStorage
 type ConsulConfigStorage struct {
 	config Config
 	kv     *api.KV
 	json   jsoniter.API
 }
 
+// GetConfig is get config from consul kv
 func (cs *ConsulConfigStorage) GetConfig(labName string) (Config, error) {
 	pair, _, err := cs.kv.Get(labName, nil)
 	if err != nil {
@@ -35,6 +38,7 @@ func (cs *ConsulConfigStorage) GetConfig(labName string) (Config, error) {
 	return cs.config, nil
 }
 
+// SetConfig is put config to consul kv
 func (cs *ConsulConfigStorage) SetConfig(config Config) {
 	// PUT a new KV pair
 	value, _ := cs.json.Marshal(config.treatments)
