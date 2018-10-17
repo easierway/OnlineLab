@@ -1,19 +1,26 @@
 package onlinelab
 
 import (
+	"github.com/hashicorp/consul/api"
 	"testing"
 )
 
 func TestGetConfig(t *testing.T) {
-	ccs, _ := NewConsulConfigStorage("localhost:8500")
+	ccs, _ := NewConsulConfigStorage(&api.Config{})
 	// local has not consul service
 	if ccs == nil {
 		ccs = &ConsulConfigStorage{}
 	}
+
+	config, _ := ccs.GetConfig("testLabNameNotExits")
+	if config.Name != "" && len(config.treatments) != 0 {
+		t.Error("config is not original value")
+	}
+
 	treatments := []Treatment{Treatment{"T1", 40}, Treatment{"T2", 60}}
-	ccs.SetConfig(Config{"test", treatments})
-	config, _ := ccs.GetConfig("test")
-	if config.Name != "test" {
+	ccs.SetConfig(Config{"testLabName", treatments})
+	config, _ = ccs.GetConfig("testLabName")
+	if config.Name != "testLabName" {
 		t.Error("config name invalid")
 	}
 	if len(config.treatments) != 2 {

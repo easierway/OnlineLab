@@ -1,14 +1,14 @@
 package onlinelab
 
 import (
+	"errors"
 	"github.com/hashicorp/consul/api"
 	"github.com/json-iterator/go"
 )
 
 // NewConsulConfigStorage is ConsulConfigStorage constructor
-func NewConsulConfigStorage(consulAddress string) (*ConsulConfigStorage, error) {
-	//var err error
-	client, err := api.NewClient(&api.Config{Address: consulAddress})
+func NewConsulConfigStorage(consulAPIConfig *api.Config) (*ConsulConfigStorage, error) {
+	client, err := api.NewClient(consulAPIConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -23,15 +23,16 @@ type ConsulConfigStorage struct {
 	json   jsoniter.API
 }
 
-// GetConfig is get config from consul kv
+// GetConfig is get config from consul kv. If an error, it will return to the original config
 func (cs *ConsulConfigStorage) GetConfig(labName string) (Config, error) {
 	pair, _, err := cs.kv.Get(labName, nil)
 	if err != nil {
-		// get config failure from consul kv, cs.config default value is &Config{}
 		return cs.config, err
 	}
-	if err := cs.json.Unmarshal(pair.Value, &cs.config.treatments); err != nil {
-		// unmarshal json failure, cs.config default value is &Config{}
+	if pair == nil {
+		return cs.config, errors.New("get consul kv is nil")
+	}
+	if err = cs.json.Unmarshal(pair.Value, &cs.config.treatments); err != nil {
 		return cs.config, err
 	}
 	cs.config.Name = pair.Key
