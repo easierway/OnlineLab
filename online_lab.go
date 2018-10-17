@@ -11,7 +11,7 @@ type Config struct {
 type Treatment struct {
 	Name string
 	// volumeProportion is the proportion of incoming volume to the treatment
-	volumeProportion int
+	VolumeProportion int
 }
 
 // ConfigStorage is to get the persisted OnlineLabConfig

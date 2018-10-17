@@ -69,8 +69,8 @@ func (tc *TreatmentController) calculateSlotRange() {
 	var treatmentRanges []treatmentRange
 	for _, treatment := range tc.config.treatments {
 		treatmentRanges = append(treatmentRanges, tc.createTreatmentRange(treatment.Name,
-			offset, offset+treatment.volumeProportion-1))
-		offset = offset + treatment.volumeProportion
+			offset, offset+treatment.VolumeProportion-1))
+		offset = offset + treatment.VolumeProportion
 	}
 	tc.treatmentRanges = treatmentRanges
 }
