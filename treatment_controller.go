@@ -12,6 +12,9 @@ const NeverRefresh time.Duration = -1
 // ErrGetTreatment will be thrown when failing to get proper treatment
 var ErrGetTreatment = errors.New("can not find the proper treatment")
 
+// ErrTreatmentProportion will be thrown when the treatment proportion settings are wrong
+var ErrTreatmentProportion = errors.New("sum of the proportion should be 100")
+
 // treatmentRange : the related treatment would be return
 // when current slot number is in the range [MinSlotNum, MaxSlotNum]
 type treatmentRange struct {
@@ -19,6 +22,9 @@ type treatmentRange struct {
 	MinSlotNum    int
 	MaxSlotNum    int
 }
+
+// RefreshErrorHandlerFn is used to handle the configuration refreshing errors
+type RefreshErrorHandlerFn func(err error)
 
 // TreatmentController is assign the volume to the proper treatment by the settings
 type TreatmentController struct {
@@ -32,7 +38,8 @@ func (tc *TreatmentController) createTreatmentRange(name string,
 }
 
 func (tc *TreatmentController) refreshConfig(context context.Context,
-	refreshInterval time.Duration, configStorage ConfigStorage, labName string) {
+	refreshInterval time.Duration, configStorage ConfigStorage,
+	labName string, refreshErrHandlerFn RefreshErrorHandlerFn) {
 	if refreshInterval <= 0 {
 		return
 	}
@@ -43,15 +50,23 @@ func (tc *TreatmentController) refreshConfig(context context.Context,
 			config, err := configStorage.GetConfig(labName)
 			if err == nil {
 				tc.config = config
-				tc.calculateSlotRange()
+				err = tc.calculateSlotRange()
+			}
+			if err != nil {
+				refreshErrHandlerFn(err)
 			}
 		}
 	}
 }
 
 // CreateTreatmentController is to create a TreatmentController
+// configStorage: the implementations for different backend storages (e.g. Consul, K8S, Redis)
+// labName: the name of your online lab, which relates to a treatment settings
+// refreshInterval: the interval of refresh the settings from the backend storages
+// refreshErrHandler: when failing to refreshing, the function will be invoked
 func CreateTreatmentController(context context.Context, configStorage ConfigStorage,
-	labName string, refreshInterval time.Duration) (*TreatmentController, error) {
+	labName string, refreshInterval time.Duration,
+	refreshErrHandler RefreshErrorHandlerFn) (*TreatmentController, error) {
 	config, err := configStorage.GetConfig(labName)
 	if err != nil {
 		return nil, err
@@ -59,12 +74,30 @@ func CreateTreatmentController(context context.Context, configStorage ConfigStor
 	treatmentController := &TreatmentController{
 		config: config,
 	}
-	go treatmentController.refreshConfig(context, refreshInterval, configStorage, labName)
+	if err = treatmentController.validateConfig(); err != nil {
+		return nil, err
+	}
+	go treatmentController.refreshConfig(context, refreshInterval, configStorage,
+		labName, refreshErrHandler)
 	treatmentController.calculateSlotRange()
 	return treatmentController, nil
 }
 
-func (tc *TreatmentController) calculateSlotRange() {
+func (tc *TreatmentController) validateConfig() error {
+	totalProportion := 0
+	for _, treatment := range tc.config.treatments {
+		totalProportion = totalProportion + treatment.VolumeProportion
+	}
+	if totalProportion != 100 {
+		return ErrTreatmentProportion
+	}
+	return nil
+}
+
+func (tc *TreatmentController) calculateSlotRange() error {
+	if err := tc.validateConfig(); err != nil {
+		return err
+	}
 	offset := 0
 	var treatmentRanges []treatmentRange
 	for _, treatment := range tc.config.treatments {
@@ -73,14 +106,13 @@ func (tc *TreatmentController) calculateSlotRange() {
 		offset = offset + treatment.VolumeProportion
 	}
 	tc.treatmentRanges = treatmentRanges
+	return nil
 }
 
 // GetNextTreatment is to get the treatment for the coming request
 func (tc *TreatmentController) GetNextTreatment(requestID int) (string, error) {
 	nextSlotNum := requestID % 100
-	//	fmt.Printf("Next Slot Num: %d\n", nextSlotNum)
 	for _, tr := range tc.treatmentRanges {
-		//		fmt.Printf("treatmentRange: %v\n", tr)
 		if nextSlotNum >= tr.MinSlotNum && nextSlotNum <= tr.MaxSlotNum {
 			return tr.TreatmentName, nil
 		}

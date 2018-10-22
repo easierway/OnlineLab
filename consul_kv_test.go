@@ -1,8 +1,9 @@
 package onlinelab
 
 import (
-	"github.com/hashicorp/consul/api"
 	"testing"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func TestGetConfig(t *testing.T) {
@@ -13,16 +14,14 @@ func TestGetConfig(t *testing.T) {
 	}
 
 	config, _ := ccs.GetConfig("testLabNameNotExits")
-	if config.Name != "" && len(config.treatments) != 0 {
+	if len(config.treatments) != 0 {
 		t.Error("config is not original value")
 	}
 
 	treatments := []Treatment{Treatment{"T1", 40}, Treatment{"T2", 60}}
-	ccs.SetConfig(Config{"testLabName", treatments})
+	ccs.SetConfig("testLabName", Config{treatments})
 	config, _ = ccs.GetConfig("testLabName")
-	if config.Name != "testLabName" {
-		t.Error("config name invalid")
-	}
+
 	if len(config.treatments) != 2 {
 		t.Error("config treatments invalid")
 	}

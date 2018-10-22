@@ -2,6 +2,7 @@ package onlinelab
 
 import (
 	"errors"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/json-iterator/go"
 )
@@ -16,7 +17,9 @@ func NewConsulConfigStorage(consulAPIConfig *api.Config) (*ConsulConfigStorage, 
 	return &ConsulConfigStorage{kv: client.KV(), json: json}, nil
 }
 
-// ConsulConfigStorage
+// ConsulConfigStorage is the ConfigStorage based on Consul KV
+// Configuration format is following:
+// [{"Name":"T1","VolumeProportion":30},{"Name":"T2","VolumeProportion":70}]
 type ConsulConfigStorage struct {
 	config Config
 	kv     *api.KV
@@ -35,15 +38,14 @@ func (cs *ConsulConfigStorage) GetConfig(labName string) (Config, error) {
 	if err = cs.json.Unmarshal(pair.Value, &cs.config.treatments); err != nil {
 		return cs.config, err
 	}
-	cs.config.Name = pair.Key
 	return cs.config, nil
 }
 
 // SetConfig is put config to consul kv
-func (cs *ConsulConfigStorage) SetConfig(config Config) {
+func (cs *ConsulConfigStorage) SetConfig(labName string, config Config) {
 	// PUT a new KV pair
 	value, _ := cs.json.Marshal(config.treatments)
-	p := &api.KVPair{Key: config.Name, Value: value}
+	p := &api.KVPair{Key: labName, Value: value}
 	cs.kv.Put(p, nil)
 	cs.config = config
 }

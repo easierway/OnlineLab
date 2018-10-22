@@ -3,7 +3,6 @@ package onlinelab
 // Config is the configuration for each online test
 // The sum of all treatments' the volume proportions should be 100
 type Config struct {
-	Name       string
 	treatments []Treatment
 }
 
