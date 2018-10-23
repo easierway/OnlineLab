@@ -15,13 +15,18 @@ func TestDemo(t *testing.T) {
 		tn  string
 		err error
 	)
+	refreshErrHandler := func(err error) {
+		if err != nil {
+			t.Error(err)
+		}
+	}
 	ctx := context.Background()
 	configStorage, err := onlinelab.NewConsulConfigStorage(&api.Config{})
 	if err != nil {
 		t.Error("failed to create config storage")
 	}
 	treatmentControoler, err := onlinelab.CreateTreatmentController(ctx, configStorage,
-		"HelloLab", time.Second*1)
+		"HelloLab", time.Second*1, refreshErrHandler)
 	if err != nil {
 		t.Error("failed to create treatment controller")
 	}
