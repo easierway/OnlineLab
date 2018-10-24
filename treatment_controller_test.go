@@ -3,6 +3,7 @@ package onlinelab
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -15,21 +16,21 @@ func createConfig(treatments []Treatment) Config {
 
 type MockConfigStorage struct {
 	cntFailSecondTime int
-	config            Config
+	config            atomic.Value
 }
 
-func (cs *MockConfigStorage) GetConfig(labName string) (Config, error) {
+func (cs *MockConfigStorage) GetConfig(labName string) (*Config, error) {
 	if labName == FailSecondTime {
 		cs.cntFailSecondTime++
 		if cs.cntFailSecondTime == 2 {
-			return cs.config, errors.New("failed to get config when refreshing")
+			return nil, errors.New("failed to get config when refreshing")
 		}
 	}
-	return cs.config, nil
+	return cs.config.Load().(*Config), nil
 }
 
-func (cs *MockConfigStorage) SetTreatmentConfig(config Config) {
-	cs.config = config
+func (cs *MockConfigStorage) SetTreatmentConfig(config *Config) {
+	cs.config.Store(config)
 }
 
 func testVolumeDividing(t *testing.T, tc *TreatmentController,
@@ -66,7 +67,7 @@ func TestCreateControllerWithInvalidTreatmentSetting(t *testing.T) {
 	mc := &MockConfigStorage{}
 	treatments := []Treatment{Treatment{"T1", 20}, Treatment{"T2", 80},
 		Treatment{"T3", 10}}
-	mc.SetTreatmentConfig(Config{treatments})
+	mc.SetTreatmentConfig(&Config{treatments})
 	ctx := context.Background()
 	_, err := CreateTreatmentController(ctx, mc, "test", NeverRefresh, nil)
 	if err == nil {
@@ -81,7 +82,7 @@ func TestCreateControllerWithFailToRefresh(t *testing.T) {
 	}
 	mc := &MockConfigStorage{}
 	treatments := []Treatment{Treatment{"T1", 20}, Treatment{"T2", 80}}
-	mc.SetTreatmentConfig(Config{treatments})
+	mc.SetTreatmentConfig(&Config{treatments})
 	ctx := context.Background()
 	_, err := CreateTreatmentController(ctx, mc, FailSecondTime,
 		time.Millisecond*100, refreshErrHandler)
@@ -97,7 +98,7 @@ func TestCreateControllerWithFailToRefresh(t *testing.T) {
 func TestVolumeDividingWithoutRefresh(t *testing.T) {
 	mc := &MockConfigStorage{}
 	treatments := []Treatment{Treatment{"T1", 20}, Treatment{"T2", 80}}
-	mc.SetTreatmentConfig(Config{treatments})
+	mc.SetTreatmentConfig(&Config{treatments})
 	ctx := context.Background()
 	tc, err := CreateTreatmentController(ctx, mc, "test", NeverRefresh, nil)
 	if err != nil {
@@ -109,7 +110,7 @@ func TestVolumeDividingWithoutRefresh(t *testing.T) {
 func TestRefreshConfig(t *testing.T) {
 	mc := &MockConfigStorage{}
 	treatments := []Treatment{Treatment{"T1", 20}, Treatment{"T2", 80}}
-	mc.SetTreatmentConfig(Config{treatments})
+	mc.SetTreatmentConfig(&Config{treatments})
 	ctx := context.Background()
 	tc, err := CreateTreatmentController(ctx, mc, "test", time.Second*1, nil)
 	if err != nil {
@@ -117,8 +118,26 @@ func TestRefreshConfig(t *testing.T) {
 	}
 	testVolumeDividing(t, tc, 0.2)
 	treatments = []Treatment{Treatment{"T1", 40}, Treatment{"T2", 60}}
-	mc.SetTreatmentConfig(Config{treatments})
+	mc.SetTreatmentConfig(&Config{treatments})
 	testVolumeDividing(t, tc, 0.2)
 	time.Sleep(time.Second * 2)
 	testVolumeDividing(t, tc, 0.4)
+}
+
+func TestInConcurrentEnv(t *testing.T) {
+	mc := &MockConfigStorage{}
+	treatments := []Treatment{Treatment{"T1", 20}, Treatment{"T2", 80}}
+	mc.SetTreatmentConfig(&Config{treatments})
+
+	ctx := context.Background()
+	tc, err := CreateTreatmentController(ctx, mc, "test", time.Millisecond*1, nil)
+	go func(tc *TreatmentController) {
+		if err != nil {
+			t.Error(err)
+		}
+		for {
+			testVolumeDividing(t, tc, 0.2)
+		}
+	}(tc)
+	time.Sleep(time.Second * 3)
 }

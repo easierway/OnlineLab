@@ -3,6 +3,7 @@ package onlinelab
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"time"
 )
 
@@ -28,8 +29,8 @@ type RefreshErrorHandlerFn func(err error)
 
 // TreatmentController is assign the volume to the proper treatment by the settings
 type TreatmentController struct {
-	config          Config
-	treatmentRanges []treatmentRange
+	config          atomic.Value
+	treatmentRanges atomic.Value
 }
 
 func (tc *TreatmentController) createTreatmentRange(name string,
@@ -49,7 +50,7 @@ func (tc *TreatmentController) refreshConfig(context context.Context,
 		default:
 			config, err := configStorage.GetConfig(labName)
 			if err == nil {
-				tc.config = config
+				tc.config.Store(config)
 				err = tc.calculateSlotRange()
 			}
 			if err != nil {
@@ -71,9 +72,8 @@ func CreateTreatmentController(context context.Context, configStorage ConfigStor
 	if err != nil {
 		return nil, err
 	}
-	treatmentController := &TreatmentController{
-		config: config,
-	}
+	treatmentController := &TreatmentController{}
+	treatmentController.config.Store(config)
 	if err = treatmentController.validateConfig(); err != nil {
 		return nil, err
 	}
@@ -85,7 +85,8 @@ func CreateTreatmentController(context context.Context, configStorage ConfigStor
 
 func (tc *TreatmentController) validateConfig() error {
 	totalProportion := 0
-	for _, treatment := range tc.config.treatments {
+	config := tc.config.Load().(*Config)
+	for _, treatment := range config.treatments {
 		totalProportion = totalProportion + treatment.VolumeProportion
 	}
 	if totalProportion != 100 {
@@ -100,19 +101,21 @@ func (tc *TreatmentController) calculateSlotRange() error {
 	}
 	offset := 0
 	var treatmentRanges []treatmentRange
-	for _, treatment := range tc.config.treatments {
+	config := tc.config.Load().(*Config)
+	for _, treatment := range config.treatments {
 		treatmentRanges = append(treatmentRanges, tc.createTreatmentRange(treatment.Name,
 			offset, offset+treatment.VolumeProportion-1))
 		offset = offset + treatment.VolumeProportion
 	}
-	tc.treatmentRanges = treatmentRanges
+	tc.treatmentRanges.Store(&treatmentRanges)
 	return nil
 }
 
 // GetNextTreatment is to get the treatment for the coming request
 func (tc *TreatmentController) GetNextTreatment(requestID int) (string, error) {
 	nextSlotNum := requestID % 100
-	for _, tr := range tc.treatmentRanges {
+	treatmentRanges := tc.treatmentRanges.Load().(*[]treatmentRange)
+	for _, tr := range *treatmentRanges {
 		if nextSlotNum >= tr.MinSlotNum && nextSlotNum <= tr.MaxSlotNum {
 			return tr.TreatmentName, nil
 		}

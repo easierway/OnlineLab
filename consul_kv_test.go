@@ -20,8 +20,10 @@ func TestGetConfig(t *testing.T) {
 
 	treatments := []Treatment{Treatment{"T1", 40}, Treatment{"T2", 60}}
 	ccs.SetConfig("testLabName", Config{treatments})
-	config, _ = ccs.GetConfig("testLabName")
-
+	config, err := ccs.GetConfig("testLabName")
+	if err != nil {
+		t.Log(err)
+	}
 	if len(config.treatments) != 2 {
 		t.Error("config treatments invalid")
 	}

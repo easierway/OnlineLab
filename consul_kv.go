@@ -21,24 +21,24 @@ func NewConsulConfigStorage(consulAPIConfig *api.Config) (*ConsulConfigStorage, 
 // Configuration format is following:
 // [{"Name":"T1","VolumeProportion":30},{"Name":"T2","VolumeProportion":70}]
 type ConsulConfigStorage struct {
-	config Config
-	kv     *api.KV
-	json   jsoniter.API
+	kv   *api.KV
+	json jsoniter.API
 }
 
-// GetConfig is get config from consul kv. If an error, it will return to the original config
-func (cs *ConsulConfigStorage) GetConfig(labName string) (Config, error) {
+// GetConfig is get config from consul kv.
+func (cs *ConsulConfigStorage) GetConfig(labName string) (*Config, error) {
 	pair, _, err := cs.kv.Get(labName, nil)
 	if err != nil {
-		return cs.config, err
+		return &Config{}, err
 	}
 	if pair == nil {
-		return cs.config, errors.New("get consul kv is nil")
+		return &Config{}, errors.New("get consul kv is nil")
 	}
-	if err = cs.json.Unmarshal(pair.Value, &cs.config.treatments); err != nil {
-		return cs.config, err
+	config := &Config{}
+	if err = cs.json.Unmarshal(pair.Value, &config.treatments); err != nil {
+		return config, err
 	}
-	return cs.config, nil
+	return config, nil
 }
 
 // SetConfig is put config to consul kv
@@ -47,5 +47,4 @@ func (cs *ConsulConfigStorage) SetConfig(labName string, config Config) {
 	value, _ := cs.json.Marshal(config.treatments)
 	p := &api.KVPair{Key: labName, Value: value}
 	cs.kv.Put(p, nil)
-	cs.config = config
 }

@@ -15,5 +15,5 @@ type Treatment struct {
 
 // ConfigStorage is to get the persisted OnlineLabConfig
 type ConfigStorage interface {
-	GetConfig(name string) (Config, error)
+	GetConfig(name string) (*Config, error)
 }
