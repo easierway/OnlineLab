@@ -47,6 +47,7 @@ func (tc *TreatmentController) refreshConfig(context context.Context,
 	for _ = range time.Tick(refreshInterval) {
 		select {
 		case <-context.Done():
+			return
 		default:
 			config, err := configStorage.GetConfig(labName)
 			if err == nil {
